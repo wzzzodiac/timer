@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111318" />
+  <title>Timer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d0f13;
+      --panel: #151820;
+      --panel-2: #1b1f29;
+      --border: #2a303d;
+      --text: #f4f7fb;
+      --muted: #9aa3b2;
+      --accent: #ff9f0a;
+      --danger: #ff453a;
+      --success: #32d74b;
+      --shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 50% -15%, rgba(255, 159, 10, .12), transparent 34rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px 18px;
+    }
+
+    button, input { font: inherit; }
+
+    .app {
+      width: min(720px, 100%);
+      background: rgba(21, 24, 32, .94);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, .02);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab.active {
+      background: var(--panel-2);
+      color: var(--text);
+    }
+
+    .content { padding: 28px; }
+
+    .display {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(4rem, 15vw, 8.5rem);
+      font-weight: 750;
+      letter-spacing: -.06em;
+      line-height: .95;
+      margin: 18px 0 28px;
+      user-select: none;
+    }
+
+    .display.finished {
+      color: var(--danger);
+      animation: pulse .7s ease-in-out 3;
+    }
+
+    @keyframes pulse {
+      50% { opacity: .35; transform: scale(.985); }
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 12px;
+      text-align: center;
+      outline: none;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .field input:focus { border-color: var(--accent); }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 16px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 750;
+      transition: transform .08s ease, filter .15s ease;
+    }
+
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(1px) scale(.99); }
+    .btn.primary { background: var(--accent); color: #14100a; border-color: transparent; }
+    .btn.danger { color: #ff9b95; }
+
+    .adjustments,
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .adjustments { margin-bottom: 18px; }
+
+    .section-label {
+      margin: 24px 0 10px;
+      color: var(--muted);
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      font-weight: 750;
+    }
+
+    .preset {
+      min-height: 46px;
+      background: transparent;
+    }
+
+    .status {
+      min-height: 22px;
+      margin-top: 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: .9rem;
+    }
+
+    .hidden { display: none !important; }
+
+    .stopwatch-controls {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 10px;
+    }
+
+    .hint {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    @media (max-width: 560px) {
+      .content { padding: 22px 16px 20px; }
+      .controls { grid-template-columns: 1fr 1fr; }
+      .controls .primary { grid-column: 1 / -1; }
+      .adjustments, .presets { grid-template-columns: repeat(2, 1fr); }
+      .display { margin-top: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Desktop timer">
+    <nav class="tabs" aria-label="Mode">
+      <button class="tab active" id="timerTab" type="button">Timer</button>
+      <button class="tab" id="stopwatchTab" type="button">Stopwatch</button>
+    </nav>
+
+    <section class="content" id="timerPanel">
+      <div class="display" id="timerDisplay" aria-live="polite">05:00</div>
+
+      <div class="editor" aria-label="Set timer duration">
+        <div class="field">
+          <label for="hours">Hours</label>
+          <input id="hours" type="number" inputmode="numeric" min="0" max="99" value="0" />
+        </div>
+        <div class="field">
+          <label for="minutes">Minutes</label>
+          <input id="minutes" type="number" inputmode="numeric" min="0" max="59" value="5" />
+        </div>
+        <div class="field">
+          <label for="seconds">Seconds</label>
+          <input id="seconds" type="number" inputmode="numeric" min="0" max="59" value="0" />
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="startPause" type="button">Start</button>
+        <button class="btn" id="resetTimer" type="button">Reset</button>
+        <button class="btn danger" id="clearTimer" type="button">Clear</button>
+      </div>
+
+      <div class="adjustments">
+        <button class="btn" type="button" data-adjust="-60">−1 min</button>
+        <button class="btn" type="button" data-adjust="60">+1 min</button>
+        <button class="btn" type="button" data-adjust="300">+5 min</button>
+        <button class="btn" type="button" data-adjust="600">+10 min</button>
+      </div>
+
+      <div class="section-label">Quick presets</div>
+      <div class="presets" id="presets">
+        <button class="btn preset" type="button" data-seconds="60">1 min</button>
+        <button class="btn preset" type="button" data-seconds="90">1:30</button>
+        <button class="btn preset" type="button" data-seconds="120">2 min</button>
+        <button class="btn preset" type="button" data-seconds="180">3 min</button>
+        <button class="btn preset" type="button" data-seconds="300">5 min</button>
+        <button class="btn preset" type="button" data-seconds="600">10 min</button>
+        <button class="btn preset" type="button" data-seconds="900">15 min</button>
+        <button class="btn preset" type="button" data-seconds="1500">25 min</button>
+      </div>
+
+      <div class="status" id="timerStatus">Ready</div>
+      <div class="hint">Space = Start/Pause · R = Reset</div>
+    </section>
+
+    <section class="content hidden" id="stopwatchPanel">
+      <div class="display" id="stopwatchDisplay" aria-live="polite">00:00.0</div>
+      <div class="stopwatch-controls">
+        <button class="btn primary" id="stopwatchStartPause" type="button">Start</button>
+        <button class="btn" id="stopwatchReset" type="button">Reset</button>
+      </div>
+      <div class="status" id="stopwatchStatus">Ready</div>
+      <div class="hint">Space = Start/Pause · R = Reset</div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+
+      const timerTab = $('timerTab');
+      const stopwatchTab = $('stopwatchTab');
+      const timerPanel = $('timerPanel');
+      const stopwatchPanel = $('stopwatchPanel');
+
+      const timerDisplay = $('timerDisplay');
+      const timerStatus = $('timerStatus');
+      const hoursInput = $('hours');
+      const minutesInput = $('minutes');
+      const secondsInput = $('seconds');
+      const startPauseButton = $('startPause');
+      const resetTimerButton = $('resetTimer');
+      const clearTimerButton = $('clearTimer');
+
+      const stopwatchDisplay = $('stopwatchDisplay');
+      const stopwatchStatus = $('stopwatchStatus');
+      const stopwatchStartPause = $('stopwatchStartPause');
+      const stopwatchReset = $('stopwatchReset');
+
+      let activeMode = 'timer';
+
+      let timerInitialMs = 5 * 60 * 1000;
+      let timerRemainingMs = timerInitialMs;
+      let timerEndAt = null;
+      let timerInterval = null;
+      let timerRunning = false;
+      let timerFinished = false;
+
+      let stopwatchRunning = false;
+      let stopwatchStartedAt = null;
+      let stopwatchElapsedMs = 0;
+      let stopwatchInterval = null;
+
+      let audioContext = null;
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+      }
+
+      function parseInput(input, max) {
+        return clamp(Math.floor(Number(input.value) || 0), 0, max);
+      }
+
+      function sanitizeInputs() {
+        hoursInput.value = parseInput(hoursInput, 99);
+        minutesInput.value = parseInput(minutesInput, 59);
+        secondsInput.value = parseInput(secondsInput, 59);
+      }
+
+      function inputTotalMs() {
+        sanitizeInputs();
+        return (
+          Number(hoursInput.value) * 3600 +
+          Number(minutesInput.value) * 60 +
+          Number(secondsInput.value)
+        ) * 1000;
+      }
+
+      function setInputsFromMs(ms) {
+        const totalSeconds = Math.max(0, Math.round(ms / 1000));
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        hoursInput.value = h;
+        minutesInput.value = m;
+        secondsInput.value = s;
+      }
+
+      function formatTimer(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        if (h > 0) {
+          return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+
+      function formatStopwatch(ms) {
+        const tenths = Math.floor((ms % 1000) / 100);
+        const totalSeconds = Math.floor(ms / 1000);
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        if (h > 0) {
+          return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${tenths}`;
+        }
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${tenths}`;
+      }
+
+      function ensureAudio() {
+        try {
+          if (!audioContext) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) audioContext = new AudioContext();
+          }
+          if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().catch(() => {});
+          }
+        } catch (_) {}
+      }
+
+      function beep() {
+        ensureAudio();
+        if (!audioContext) return;
+
+        const now = audioContext.currentTime;
+        [0, 0.28, 0.56].forEach((offset) => {
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(880, now + offset);
+          gain.gain.setValueAtTime(0.0001, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.22, now + offset + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.18);
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.start(now + offset);
+          oscillator.stop(now + offset + 0.2);
+        });
+      }
+
+      function updateTitle() {
+        if (timerRunning) {
+          document.title = `${formatTimer(timerRemainingMs)} — Timer`;
+        } else if (stopwatchRunning) {
+          document.title = `${formatStopwatch(currentStopwatchMs())} — Stopwatch`;
+        } else {
+          document.title = 'Timer';
+        }
+      }
+
+      function renderTimer() {
+        timerDisplay.textContent = formatTimer(timerRemainingMs);
+        startPauseButton.textContent = timerRunning ? 'Pause' : (timerRemainingMs === 0 ? 'Start' : 'Start');
+        timerDisplay.classList.toggle('finished', timerFinished);
+        updateTitle();
+      }
+
+      function setTimerFromInputs() {
+        if (timerRunning) return;
+        timerInitialMs = inputTotalMs();
+        timerRemainingMs = timerInitialMs;
+        timerFinished = false;
+        timerStatus.textContent = timerInitialMs > 0 ? 'Ready' : 'Set a duration';
+        renderTimer();
+      }
+
+      function finishTimer() {
+        timerRunning = false;
+        timerRemainingMs = 0;
+        timerEndAt = null;
+        timerFinished = true;
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+        timerStatus.textContent = 'Finished';
+        renderTimer();
+        beep();
+      }
+
+      function tickTimer() {
+        if (!timerRunning || timerEndAt === null) return;
+        timerRemainingMs = Math.max(0, timerEndAt - Date.now());
+        if (timerRemainingMs <= 0) {
+          finishTimer();
+          return;
+        }
+        renderTimer();
+      }
+
+      function startTimer() {
+        ensureAudio();
+        if (timerRemainingMs <= 0) {
+          timerInitialMs = inputTotalMs();
+          timerRemainingMs = timerInitialMs;
+        }
+        if (timerRemainingMs <= 0) {
+          timerStatus.textContent = 'Set a duration first';
+          return;
+        }
+
+        timerFinished = false;
+        timerRunning = true;
+        timerEndAt = Date.now() + timerRemainingMs;
+        timerStatus.textContent = 'Running';
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(tickTimer, 200);
+        tickTimer();
+      }
+
+      function pauseTimer() {
+        if (!timerRunning) return;
+        timerRemainingMs = Math.max(0, timerEndAt - Date.now());
+        timerRunning = false;
+        timerEndAt = null;
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+        timerStatus.textContent = 'Paused';
+        renderTimer();
+      }
+
+      function toggleTimer() {
+        if (timerRunning) pauseTimer();
+        else startTimer();
+      }
+
+      function resetTimer() {
+        pauseTimer();
+        timerRemainingMs = timerInitialMs;
+        timerFinished = false;
+        setInputsFromMs(timerInitialMs);
+        timerStatus.textContent = timerInitialMs > 0 ? 'Ready' : 'Set a duration';
+        renderTimer();
+      }
+
+      function clearTimer() {
+        pauseTimer();
+        timerInitialMs = 0;
+        timerRemainingMs = 0;
+        timerFinished = false;
+        setInputsFromMs(0);
+        timerStatus.textContent = 'Set a duration';
+        renderTimer();
+      }
+
+      function setPreset(seconds) {
+        pauseTimer();
+        timerInitialMs = seconds * 1000;
+        timerRemainingMs = timerInitialMs;
+        timerFinished = false;
+        setInputsFromMs(timerInitialMs);
+        timerStatus.textContent = 'Ready';
+        renderTimer();
+      }
+
+      function adjustTimer(seconds) {
+        const delta = seconds * 1000;
+        if (timerRunning && timerEndAt !== null) {
+          timerEndAt = Math.max(Date.now(), timerEndAt + delta);
+          timerRemainingMs = Math.max(0, timerEndAt - Date.now());
+          timerInitialMs = Math.max(0, timerInitialMs + delta);
+          if (timerRemainingMs === 0) finishTimer();
+          else tickTimer();
+        } else {
+          timerRemainingMs = Math.max(0, timerRemainingMs + delta);
+          timerInitialMs = timerRemainingMs;
+          setInputsFromMs(timerRemainingMs);
+          timerFinished = false;
+          timerStatus.textContent = timerRemainingMs > 0 ? 'Ready' : 'Set a duration';
+          renderTimer();
+        }
+      }
+
+      function currentStopwatchMs() {
+        return stopwatchRunning
+          ? stopwatchElapsedMs + (performance.now() - stopwatchStartedAt)
+          : stopwatchElapsedMs;
+      }
+
+      function renderStopwatch() {
+        stopwatchDisplay.textContent = formatStopwatch(currentStopwatchMs());
+        stopwatchStartPause.textContent = stopwatchRunning ? 'Pause' : 'Start';
+        updateTitle();
+      }
+
+      function tickStopwatch() {
+        if (!stopwatchRunning) return;
+        renderStopwatch();
+      }
+
+      function toggleStopwatch() {
+        if (stopwatchRunning) {
+          stopwatchElapsedMs = currentStopwatchMs();
+          stopwatchRunning = false;
+          stopwatchStartedAt = null;
+          if (stopwatchInterval) clearInterval(stopwatchInterval);
+          stopwatchInterval = null;
+          stopwatchStatus.textContent = 'Paused';
+        } else {
+          stopwatchRunning = true;
+          stopwatchStartedAt = performance.now();
+          stopwatchStatus.textContent = 'Running';
+          if (stopwatchInterval) clearInterval(stopwatchInterval);
+          stopwatchInterval = setInterval(tickStopwatch, 100);
+        }
+        renderStopwatch();
+      }
+
+      function resetStopwatch() {
+        stopwatchRunning = false;
+        stopwatchStartedAt = null;
+        stopwatchElapsedMs = 0;
+        if (stopwatchInterval) clearInterval(stopwatchInterval);
+        stopwatchInterval = null;
+        stopwatchStatus.textContent = 'Ready';
+        renderStopwatch();
+      }
+
+      function switchMode(mode) {
+        activeMode = mode;
+        const timerActive = mode === 'timer';
+        timerTab.classList.toggle('active', timerActive);
+        stopwatchTab.classList.toggle('active', !timerActive);
+        timerPanel.classList.toggle('hidden', !timerActive);
+        stopwatchPanel.classList.toggle('hidden', timerActive);
+        updateTitle();
+      }
+
+      [hoursInput, minutesInput, secondsInput].forEach((input) => {
+        input.addEventListener('change', setTimerFromInputs);
+        input.addEventListener('input', () => {
+          if (!timerRunning) setTimerFromInputs();
+        });
+      });
+
+      startPauseButton.addEventListener('click', toggleTimer);
+      resetTimerButton.addEventListener('click', resetTimer);
+      clearTimerButton.addEventListener('click', clearTimer);
+
+      document.querySelectorAll('[data-seconds]').forEach((button) => {
+        button.addEventListener('click', () => setPreset(Number(button.dataset.seconds)));
+      });
+
+      document.querySelectorAll('[data-adjust]').forEach((button) => {
+        button.addEventListener('click', () => adjustTimer(Number(button.dataset.adjust)));
+      });
+
+      timerTab.addEventListener('click', () => switchMode('timer'));
+      stopwatchTab.addEventListener('click', () => switchMode('stopwatch'));
+      stopwatchStartPause.addEventListener('click', toggleStopwatch);
+      stopwatchReset.addEventListener('click', resetStopwatch);
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          tickTimer();
+          renderStopwatch();
+        }
+      });
+
+      window.addEventListener('focus', () => {
+        tickTimer();
+        renderStopwatch();
+      });
+
+      document.addEventListener('keydown', (event) => {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        if (event.code === 'Space') {
+          event.preventDefault();
+          activeMode === 'timer' ? toggleTimer() : toggleStopwatch();
+        }
+
+        if (event.key.toLowerCase() === 'r') {
+          activeMode === 'timer' ? resetTimer() : resetStopwatch();
+        }
+      });
+
+      renderTimer();
+      renderStopwatch();
+    })();
+  </script>
+</body>
+</html>
