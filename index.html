@@ -33,7 +33,7 @@
       <div class="status" id="stopwatchStatus">Ready</div><div class="laps" id="laps"><div class="laps-empty">No laps yet</div></div><div class="hint">Space = Start/Pause · L = Lap · R = Reset</div>
     </section>
   </main>
-  <div class="alarm-overlay hidden" id="alarmOverlay" role="dialog" aria-modal="true" aria-labelledby="alarmTitle"><div class="alarm-card"><div class="alarm-icon">🎄</div><h2 id="alarmTitle">Time's up</h2><p>Your timer finished. Christmas mode activated.</p><button class="btn primary" id="alarmOkay" type="button">Okay</button></div></div>
+  <div class="alarm-overlay hidden" id="alarmOverlay" role="dialog" aria-modal="true" aria-labelledby="alarmTitle"><div class="alarm-card"><div class="alarm-icon">⏰</div><h2 id="alarmTitle">Time's up</h2><p>Your timer finished.</p><button class="btn primary" id="alarmOkay" type="button">Okay</button></div></div>
   <script>
   (()=>{'use strict';
     const $=id=>document.getElementById(id);
@@ -52,14 +52,14 @@
 
     const NOTE={C4:261.63,D4:293.66,E4:329.63,F4:349.23,Fs4:369.99,G4:392,A4:440,Bb4:466.16,B4:493.88,C5:523.25,D5:587.33,E5:659.25,F5:698.46,Fs5:739.99,G5:783.99,A5:880,Bb5:932.33,B5:987.77};
     const melody1=[['B4',1],['B4',1],['B4',2],['B4',1],['B4',1],['B4',2],['B4',1],['D5',1],['G4',1],['A4',1],['B4',4],['C5',1],['C5',1],['C5',1],['C5',1],['C5',1],['B4',1],['B4',1],['B4',1],['B4',1],['A4',1],['A4',1],['B4',1],['A4',4],['B4',1],['B4',1],['B4',2],['B4',1],['B4',1],['B4',2],['B4',1],['D5',1],['G4',1],['A4',1],['B4',4],['C5',1],['C5',1],['C5',1],['C5',1],['C5',1],['B4',1],['B4',1],['B4',1],['D5',1],['D5',1],['B4',1],['A4',1],['G4',4]];
-    const melody2=[['G4',3],['A4',1],['G4',2],['E4',6],['G4',3],['A4',1],['G4',2],['E4',6],['D5',4],['D5',2],['B4',4],['B4',2],['C5',4],['C5',2],['G4',6],['A4',4],['A4',2],['C5',3],['B4',1],['A4',1],['G4',4],['A4',1],['G4',2],['E4',6],['A4',4],['A4',2],['C5',3],['B4',1],['A4',1],['G4',4],['A4',1],['G4',2],['E4',6],['D4',4],['D4',2],['Fs5',3],['D5',1],['B4',2],['C5',6],['E4',6],['C5',3],['G4',1],['E4',2],['G4',3],['F4',1],['D4',2],['C4',4]];
-    const melody3=[['C4',2],['F4',2],['F4',1],['F4',1],['G4',1],['F4',1],['E4',2],['D4',2],['D4',2],['G4',2],['G4',1],['A4',1],['G4',1],['F4',1],['E4',2],['C4',2],['C4',2],['A4',2],['A4',1],['A4',1],['Bb4',1],['A4',1],['G4',2],['Fs4',2],['D4',1],['C4',1],['D4',1],['E4',2],['G4',2],['E4',2],['F4',2]];
-    const holidayMedley=[...melody1,...melody2,...melody3];
+    const melody2=[['G4',3],['A4',1],['G4',2],['E4',6],['G4',3],['A4',1],['G4',2],['E4',6],['D5',4],['D5',2],['B4',4],['B4',2],['C5',4],['C5',2],['G4',6],['A4',4],['A4',2],['C5',3],['B4',1],['A4',2],['G4',4],['A4',1],['G4',2],['E4',6],['A4',4],['A4',2],['C5',3],['B4',1],['A4',2],['G4',4],['A4',1],['G4',2],['E4',6],['D5',4],['D5',2],['Fs5',3],['D5',1],['B4',2],['C5',6],['E5',6],['C5',3],['G4',1],['E4',2],['G4',3],['F4',1],['D4',2],['C4',4]];
+    const melody3=[['C4',2],['F4',2],['F4',1],['F4',1],['G4',1],['F4',1],['E4',2],['D4',2],['D4',2],['G4',2],['G4',1],['A4',1],['G4',1],['F4',1],['E4',2],['C4',2],['C4',2],['A4',2],['A4',1],['A4',1],['Bb4',1],['A4',1],['G4',2],['Fs4',1],['D4',1],['C4',1],['D4',1],['E4',2],['G4',2],['E4',2],['F4',2]];
+    const alarmMelodies=[...melody1,...melody2,...melody3];
     const UNIT=.25;
 
     function stopScheduledAudio(){if(alarmLoopTimeout){clearTimeout(alarmLoopTimeout);alarmLoopTimeout=null}alarmSources.forEach(node=>{try{node.stop()}catch{}});alarmSources=[]}
     function scheduleTone(freq,start,duration){if(!audioCtx||!freq)return;const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type='sine';osc.frequency.setValueAtTime(freq,start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.22,start+.012);const sustainEnd=Math.max(start+.013,start+duration-.035);gain.gain.setValueAtTime(.22,sustainEnd);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(gain);gain.connect(audioCtx.destination);osc.start(start);osc.stop(start+duration+.02);alarmSources.push(osc)}
-    function scheduleMedley(startAt){if(!alarmPlaying||!audioCtx)return;let cursor=startAt;holidayMedley.forEach(([name,units])=>{const slot=units*UNIT;scheduleTone(NOTE[name],cursor,Math.max(.06,slot*.92));cursor+=slot});const total=cursor-startAt;alarmLoopTimeout=setTimeout(()=>{if(alarmPlaying)scheduleMedley(audioCtx.currentTime+.06)},Math.max(100,total*1000-80))}
+    function scheduleMedley(startAt){if(!alarmPlaying||!audioCtx)return;let cursor=startAt;alarmMelodies.forEach(([name,units])=>{const slot=units*UNIT;scheduleTone(NOTE[name],cursor,Math.max(.06,slot*.92));cursor+=slot});const total=cursor-startAt;alarmLoopTimeout=setTimeout(()=>{if(alarmPlaying)scheduleMedley(audioCtx.currentTime+.06)},Math.max(100,total*1000-80))}
     function startAlarm(){ensureAudio();alarmOverlay.classList.remove('hidden');alarmPlaying=true;stopScheduledAudio();if(audioCtx)scheduleMedley(audioCtx.currentTime+.08);alarmOkay.focus()}
     function stopAlarm(){alarmPlaying=false;stopScheduledAudio();alarmOverlay.classList.add('hidden');timerDisplay.classList.remove('finished');document.title='Timer'}
 
