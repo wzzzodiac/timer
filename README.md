@@ -1,4 +1,4 @@
-# Timer — Interlude
+# Timer
 
 A countdown and stopwatch with a lavender field, clear type and quiet controls.
 
